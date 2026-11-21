@@ -5,6 +5,9 @@ on:
     branches: [ master, astrograms-rebuild ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,6 +43,7 @@ jobs:
 
       - name: Commit build log to repo (for debugging)
         if: always()
+        continue-on-error: true
         run: |
           cp build.log build-error.log 2>/dev/null || true
           git config user.email "ci@astrograms.local"
