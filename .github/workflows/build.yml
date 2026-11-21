@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -41,16 +42,19 @@ jobs:
           ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace 2>&1 | tee build.log
         continue-on-error: true
 
-      - name: Commit build log to repo (for debugging)
+      - name: Publish build log to issue (for debugging)
         if: always()
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp build.log build-error.log 2>/dev/null || true
-          git config user.email "ci@astrograms.local"
-          git config user.name "astrograms-ci"
-          git add build-error.log
-          git commit -m "ci: build log $(date -u +%Y%m%dT%H%M%SZ) [skip ci]" || true
-          git push origin HEAD:master || true
+          TAIL=$(tail -n 80 build.log 2>/dev/null || echo 'no build.log')
+          BODY=$(printf '```\n%s\n```' "$TAIL")
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/xxtatori-cloud/Telegram-Android/issues \
+            -d "{\"title\":\"CI build log $(date -u +%Y%m%dT%H%M%SZ)\",\"body\":$(echo "$BODY" | jq -Rs .),\"labels\":[\"ci-log\"]}"
 
       - name: Verify APK exists
         id: verify
