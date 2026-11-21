@@ -169,7 +169,6 @@ android {
         minSdkVersion 23
         targetSdkVersion 36
         versionName APP_VERSION_NAME
-        ndkVersion "27.2.12479018"
 
         multiDexEnabled true
 
@@ -177,7 +176,6 @@ android {
 
         externalNativeBuild {
             cmake {
-                version '3.22.1'
                 arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-23' // , '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
                 targets 'tmessages.49', 'twidget'
             }
