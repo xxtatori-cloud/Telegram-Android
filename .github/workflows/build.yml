@@ -1,0 +1,53 @@
+name: Build Astrograms APK
+
+on:
+  push:
+    branches: [ master, astrograms-rebuild ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and CMake
+        run: |
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "build-tools;36.0.0" "platforms;android-36"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build APK
+        run: ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace
+
+      - name: Verify APK exists
+        run: |
+          ls -la TMessagesProj_App/build/outputs/apk/afat/release/
+          test -f TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astrograms-apk
+          path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/astrograms-rebuild'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: astrograms-${{ github.run_number }}
+          name: Astrograms ${{ github.run_number }}
+          files: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
