@@ -38,6 +38,14 @@ jobs:
           ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace 2>&1 | tee build.log
         continue-on-error: true
 
+      - name: Show build log tail in summary
+        if: always()
+        run: |
+          echo "## Build log (last 60 lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 60 build.log >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Verify APK exists
         id: verify
         run: |
