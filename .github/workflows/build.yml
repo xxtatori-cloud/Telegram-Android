@@ -33,20 +33,39 @@ jobs:
       - name: Build APK
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
-        run: ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace 2>&1 | tee build.log
+        continue-on-error: true
 
       - name: Verify APK exists
+        id: verify
         run: |
-          ls -la TMessagesProj_App/build/outputs/apk/afat/release/
-          test -f TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          if [ -f TMessagesProj_App/build/outputs/apk/afat/release/app.apk ]; then
+            echo "apk_ok=true" >> $GITHUB_OUTPUT
+            ls -la TMessagesProj_App/build/outputs/apk/afat/release/
+          else
+            echo "apk_ok=false" >> $GITHUB_OUTPUT
+            echo "APK not found"
+            exit 1
+          fi
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       - name: Upload APK artifact
+        if: steps.verify.outputs.apk_ok == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Astrograms-apk
           path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
 
       - name: Create Release
+        if: steps.verify.outputs.apk_ok == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: astrograms-${{ github.run_number }}
@@ -54,3 +73,7 @@ jobs:
           files: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fail if build failed
+        if: steps.verify.outputs.apk_ok != 'true'
+        run: exit 1
